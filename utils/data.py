@@ -303,7 +303,10 @@ def get_workforce_safety() -> pd.DataFrame:
 def get_workforce_daily() -> pd.DataFrame:
     wf = _safe_dataset("workforce_daily")
     if wf.empty:
-        return wf
+        # Keep schema-stable empty frame for downstream grouping/sorting.
+        return pd.DataFrame(columns=["date"])
+    if "date" not in wf.columns:
+        return pd.DataFrame(columns=["date"])
     wf["date"] = pd.to_datetime(wf["date"], errors="coerce")
     return wf.dropna(subset=["date"])
 
@@ -825,10 +828,15 @@ def _rolling_projection(series: pd.Series, horizon_days: int = 30) -> tuple[floa
 
 
 def get_executive_forecast() -> dict:
-    wf = get_workforce_daily().sort_values("date")
+    wf = get_workforce_daily().copy()
+    if "date" in wf.columns:
+        wf = wf.sort_values("date")
     daily = get_daily_metrics().copy()
-    daily["date"] = pd.to_datetime(daily["date"], errors="coerce")
-    daily = daily.sort_values("date")
+    if "date" in daily.columns:
+        daily["date"] = pd.to_datetime(daily["date"], errors="coerce")
+        daily = daily.sort_values("date")
+    else:
+        daily = pd.DataFrame(columns=["date", "utilisation", "on_time_delivery_pct"])
 
     abs_fc, abs_conf = _rolling_projection(wf.groupby("date")['absence_rate'].mean() if not wf.empty else pd.Series(dtype=float), 30)
     overtime_fc, over_conf = _rolling_projection(wf.groupby("date")['overtime_hours'].mean() if not wf.empty else pd.Series(dtype=float), 30)
