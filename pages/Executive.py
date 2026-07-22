@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Iterable
+
 import streamlit as st
 
 from utils import charts
@@ -21,6 +23,7 @@ from utils.data import (
     get_revenue_by_process,
     get_revenue_by_region,
     get_revenue_trend,
+    get_executive_forecast,
     get_safety_incidents,
     get_site_performance,
     get_sites,
@@ -70,13 +73,116 @@ def _render_kpis() -> None:
 
 
 def _render_briefing() -> None:
-    create_executive_briefing(
-        revenue_summary="MTD above prior period trend",
-        operational_summary="Capacity stable with selective constraints",
-        risks="Late orders concentrated in three sites",
-        opportunities="Aerospace margin expansion across North",
-        health_score="82 / 100",
+    forecast = get_executive_forecast()
+    left, right = st.columns([1.65, 1], gap="large")
+    with left:
+        create_executive_briefing(
+            revenue_summary="MTD above prior period trend",
+            operational_summary="Capacity stable with selective constraints",
+            risks="Late orders concentrated in three sites",
+            opportunities="Aerospace margin expansion across North",
+            health_score="82 / 100",
+        )
+    with right:
+        risk = int(forecast.get("risk_score", 0))
+        risk_color = COLORS["success"] if risk < 35 else COLORS["warning"] if risk < 65 else COLORS["critical"]
+        st.markdown(
+            f"""
+            <div class='surface-card fade-in' style='border-left:4px solid {risk_color}; min-height: 220px'>
+              <div class='section-title' style='font-size:16px;margin-bottom:8px'>Executive Forecast</div>
+              <div style='display:flex;justify-content:space-between;margin-bottom:8px'>
+                <div style='color:#64748B;font-size:12px'>Overall Outlook</div>
+                <div style='font-weight:700;color:#1E293B'>{forecast.get('outlook', 'Stable')}</div>
+              </div>
+              <div style='display:flex;justify-content:space-between;margin-bottom:8px'>
+                <div style='color:#64748B;font-size:12px'>Business Risk Score</div>
+                <div style='font-weight:800;color:{risk_color}'>{risk} / 100</div>
+              </div>
+              <div style='display:flex;justify-content:space-between;margin-bottom:8px'>
+                <div style='color:#64748B;font-size:12px'>Forecast Confidence</div>
+                <div style='font-weight:700;color:#1E293B'>{forecast.get('confidence', 0)}%</div>
+              </div>
+              <div style='display:flex;justify-content:space-between;margin-bottom:10px'>
+                <div style='color:#64748B;font-size:12px'>Time Horizon</div>
+                <div style='font-weight:700;color:#1E293B'>{forecast.get('horizon', 'Next 30 Days')}</div>
+              </div>
+              <div style='font-size:11px;color:#64748B;line-height:1.45'>
+                Forecasts are generated using historical trend analysis and simulated demonstration data. They are intended solely to demonstrate predictive dashboard capabilities.
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def _sparkline(series: Iterable[float], color: str) -> str:
+    values = [float(v) for v in series] if series else [1, 2, 3, 2, 4]
+    low = min(values)
+    high = max(values)
+    spread = (high - low) if high != low else 1
+    points = []
+    for i, value in enumerate(values):
+        x = (i / max(1, len(values) - 1)) * 100
+        y = 20 - ((value - low) / spread) * 16
+        points.append(f"{x:.1f},{y:.1f}")
+    path = " ".join(points)
+    return (
+        "<svg class='sparkline' viewBox='0 0 100 24' preserveAspectRatio='none'>"
+        f"<polyline fill='none' stroke='{color}' stroke-width='2.0' points='{path}' /></svg>"
     )
+
+
+def _risk_css(level: str) -> tuple[str, str]:
+    if level == "Red":
+        return COLORS["critical"], "status-critical"
+    if level == "Amber":
+        return COLORS["warning"], "status-maintenance"
+    return COLORS["success"], "status-running"
+
+
+def _render_predictive_insights() -> None:
+    forecast = get_executive_forecast()
+    cards = forecast.get("predictive_cards", [])
+    if not cards:
+        return
+
+    st.markdown("<div class='section-title'>Predictive Insights</div>", unsafe_allow_html=True)
+    cols = st.columns(3)
+    for idx, card in enumerate(cards[:8]):
+        color, badge = _risk_css(card.get("risk", "Green"))
+        with cols[idx % 3]:
+            st.markdown(
+                f"""
+                <div class='surface-card fade-in' style='border-left:4px solid {color};min-height:250px'>
+                  <div style='display:flex;justify-content:space-between;gap:8px;align-items:center'>
+                    <div style='font-weight:700;color:#1E293B'>{card.get('title')}</div>
+                    <span class='status-pill {badge}'>{card.get('risk')}</span>
+                  </div>
+                  <div style='font-size:22px;font-weight:800;color:#0F172A;margin-top:8px'>{card.get('predicted_value')}</div>
+                  <div style='font-size:12px;color:#64748B;margin-top:6px'>Confidence: {card.get('confidence')}% · Horizon: {card.get('horizon')}</div>
+                  <div style='font-size:12px;color:#334155;margin-top:8px'><b>Impact:</b> {card.get('impact')}</div>
+                  <div style='font-size:12px;color:#334155;margin-top:6px'><b>Action:</b> {card.get('action')}</div>
+                  {_sparkline(card.get('spark', []), color)}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+def _render_outlook_and_risk_matrix() -> None:
+    forecast = get_executive_forecast()
+    left, right = st.columns([1.5, 1], gap="large")
+    with left:
+        st.markdown("<div class='section-title'>Executive Outlook Summary</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='surface-card fade-in' style='line-height:1.65;color:#334155'>{forecast.get('outlook_summary')}</div>",
+            unsafe_allow_html=True,
+        )
+    with right:
+        risk_matrix = forecast.get("risk_matrix")
+        if risk_matrix is not None and not risk_matrix.empty:
+            st.plotly_chart(charts.risk_matrix_heatmap(risk_matrix), use_container_width=True)
+            st.dataframe(risk_matrix, use_container_width=True, hide_index=True, height=248)
 
 
 def _render_alerts() -> None:
@@ -186,6 +292,8 @@ def render_page() -> None:
     _render_briefing()
     _render_kpis()
     _render_alerts()
+    _render_predictive_insights()
+    _render_outlook_and_risk_matrix()
     _render_charts()
     _render_exports()
 

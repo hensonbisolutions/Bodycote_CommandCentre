@@ -43,6 +43,7 @@ def _render_module(module: Any) -> None:
 def _get_nav_items() -> list[tuple[str, str, str]]:
     return [
         ("Dashboard", "📊", "pages.Executive"),
+        ("People & Workforce", "👷", "pages.PeopleWorkforce"),
         ("Regions", "🌍", "pages.Regions"),
         ("Sites", "🏭", "pages.Site"),
         ("Customers", "👥", "pages.Customers"),

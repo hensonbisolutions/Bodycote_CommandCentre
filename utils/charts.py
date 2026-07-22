@@ -257,3 +257,83 @@ def site_performance_map(sites_df: pd.DataFrame, site_perf_df: pd.DataFrame) -> 
         coloraxis_colorbar=dict(title=color_metric.replace("_", " ").title()),
     )
     return fig
+
+
+def workforce_trend_chart(df: pd.DataFrame, x: str, y: str, title: str, color: str = COLORS["primary"]) -> go.Figure:
+    if df.empty or x not in df.columns or y not in df.columns:
+        return apply_template(go.Figure())
+    safe = df.copy()
+    safe[x] = pd.to_datetime(safe[x], errors="coerce")
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=safe[x],
+            y=safe[y],
+            mode="lines+markers",
+            line=dict(color=color, width=3),
+            marker=dict(size=5, color=color),
+            fill="tozeroy",
+            fillcolor="rgba(0, 94, 184, 0.10)" if color == COLORS["primary"] else None,
+            name=y.replace("_", " ").title(),
+        )
+    )
+    fig.update_layout(title=dict(text=title, x=0), yaxis_title=y.replace("_", " ").title())
+    return apply_template(fig)
+
+
+def workforce_bar_chart(df: pd.DataFrame, x: str, y: str, title: str, color: str | None = None) -> go.Figure:
+    if df.empty or x not in df.columns or y not in df.columns:
+        return apply_template(go.Figure())
+    if color and color in df.columns:
+        fig = px.bar(df, x=x, y=y, color=color)
+    else:
+        fig = px.bar(df, x=x, y=y, color=y, color_continuous_scale="Blues")
+    fig.update_layout(title=dict(text=title, x=0), xaxis_title=x.replace("_", " ").title(), yaxis_title=y.replace("_", " ").title())
+    return apply_template(fig)
+
+
+def workforce_pie_chart(df: pd.DataFrame, names: str, values: str, title: str) -> go.Figure:
+    if df.empty or names not in df.columns or values not in df.columns:
+        return apply_template(go.Figure())
+    fig = px.pie(df, names=names, values=values, hole=0.55)
+    fig.update_layout(title=dict(text=title, x=0))
+    return apply_template(fig)
+
+
+def workforce_histogram(df: pd.DataFrame, x: str, title: str, bins: int = 20) -> go.Figure:
+    if df.empty or x not in df.columns:
+        return apply_template(go.Figure())
+    fig = px.histogram(df, x=x, nbins=bins, color_discrete_sequence=[COLORS["accent"]])
+    fig.update_layout(title=dict(text=title, x=0), xaxis_title=x.replace("_", " ").title(), yaxis_title="Count")
+    return apply_template(fig)
+
+
+def budget_vs_actual_chart(df: pd.DataFrame, title: str = "Budget vs Actual Labour Cost") -> go.Figure:
+    if df.empty or "month" not in df.columns:
+        return apply_template(go.Figure())
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=df["month"], y=df["budget"], name="Budget", marker_color="#93C5FD"))
+    fig.add_trace(go.Bar(x=df["month"], y=df["labour_cost"], name="Actual", marker_color=COLORS["primary"]))
+    fig.update_layout(title=dict(text=title, x=0), barmode="group", yaxis_title="Cost")
+    return apply_template(fig)
+
+
+def risk_matrix_heatmap(df: pd.DataFrame) -> go.Figure:
+    if df.empty:
+        return apply_template(go.Figure())
+    score_map = {"Green": 1, "Amber": 2, "Red": 3}
+    safe = df.copy()
+    safe["score"] = safe["Colour"].map(score_map).fillna(1)
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=[safe["score"].tolist()],
+            x=safe["Category"].tolist(),
+            y=["Executive Risk"],
+            colorscale=[[0, "#16A34A"], [0.5, "#F59E0B"], [1, "#DC2626"]],
+            showscale=False,
+            text=safe["Colour"].tolist(),
+            texttemplate="%{text}",
+        )
+    )
+    fig.update_layout(title=dict(text="Executive Risk Matrix", x=0), margin=dict(l=20, r=20, t=52, b=20))
+    return apply_template(fig)
