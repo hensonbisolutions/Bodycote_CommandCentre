@@ -319,24 +319,35 @@ def _render_site_comparison_tab() -> None:
         }
     )
 
-    styled = (
-        view.style
-        .format(
-            {
-                "Headcount": "{:.0f}",
-                "Absence %": "{:.2f}",
-                "Turnover %": "{:.2f}",
-                "Labour Cost": "£{:,.0f}",
-                "Revenue per Employee": "£{:,.0f}",
-                "Overtime": "{:.1f}",
-                "Workforce Health Score": "{:.1f}",
-                "Overall Site Score": "{:.1f}",
-            }
+    fmt = {
+        "Headcount": "{:.0f}",
+        "Absence %": "{:.2f}",
+        "Turnover %": "{:.2f}",
+        "Labour Cost": "£{:,.0f}",
+        "Revenue per Employee": "£{:,.0f}",
+        "Overtime": "{:.1f}",
+        "Workforce Health Score": "{:.1f}",
+        "Overall Site Score": "{:.1f}",
+    }
+
+    try:
+        styled = (
+            view.style
+            .format(fmt)
+            .background_gradient(subset=["Overall Site Score"], cmap="Greens")
+            .background_gradient(subset=["Absence %", "Turnover %"], cmap="Reds")
         )
-        .background_gradient(subset=["Overall Site Score"], cmap="Greens")
-        .background_gradient(subset=["Absence %", "Turnover %"], cmap="Reds")
-    )
-    st.dataframe(styled, use_container_width=True, height=420)
+        st.dataframe(styled, use_container_width=True, height=420)
+    except ImportError:
+        # Streamlit Cloud images may miss optional styling deps; show a robust fallback table.
+        fallback = view.copy()
+        fallback["Score Band"] = fallback["Overall Site Score"].apply(
+            lambda x: "Strong" if x >= 80 else "Watch" if x >= 65 else "Risk"
+        )
+        fallback["Absence Band"] = fallback["Absence %"].apply(
+            lambda x: "High" if x > 4.0 else "Medium" if x > 3.2 else "Low"
+        )
+        st.dataframe(fallback, use_container_width=True, height=420)
 
 
 def _render_executive_insights() -> None:
