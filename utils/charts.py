@@ -33,9 +33,20 @@ def apply_template(fig: go.Figure) -> go.Figure:
         paper_bgcolor=COLORS["surface"],
         plot_bgcolor=COLORS["surface"],
         font=dict(family="Plus Jakarta Sans, Segoe UI, sans-serif", color=COLORS["text"], size=12),
-        margin=dict(l=24, r=20, t=54, b=30),
+        margin=dict(l=24, r=20, t=92, b=54),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.18,
+            xanchor="left",
+            x=0,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor=COLORS["grid"],
+            borderwidth=1,
+            font=dict(size=11),
+        ),
+        title=dict(y=0.88, x=0, xanchor="left", font=dict(size=16)),
     )
     fig.update_xaxes(showgrid=False, linecolor=COLORS["grid"], tickfont=dict(size=11))
     fig.update_yaxes(showgrid=True, gridcolor="#EEF2F7", zeroline=False, tickfont=dict(size=11))
