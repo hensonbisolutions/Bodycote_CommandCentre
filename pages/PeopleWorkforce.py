@@ -242,7 +242,15 @@ def _render_recruitment_tab() -> None:
     with row[0]:
         st.plotly_chart(charts.workforce_bar_chart(data["by_site"], "site", "open_vacancies", "Vacancies by Site"), use_container_width=True)
     with row[1]:
-        st.plotly_chart(charts.workforce_bar_chart(data["critical"], "site", "vacancies", "Critical Skill Shortages", color="role"), use_container_width=True)
+        critical_fig = charts.workforce_bar_chart(
+            data["critical"],
+            "site",
+            "vacancies",
+            "Critical Skill Gaps",
+            color="role",
+        )
+        critical_fig.update_layout(showlegend=False)
+        st.plotly_chart(critical_fig, use_container_width=True)
     with row[2]:
         st.plotly_chart(charts.workforce_pie_chart(data["pipeline"], "stage", "count", "Interview Pipeline"), use_container_width=True)
 
