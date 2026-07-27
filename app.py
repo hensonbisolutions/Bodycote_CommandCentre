@@ -7,7 +7,7 @@ from typing import Any
 
 import streamlit as st
 
-from utils.helpers import apply_global_styles, render_enterprise_header, render_sidebar_brand
+from utils.helpers import apply_global_styles, apply_view_mode_styles, render_enterprise_header, render_sidebar_brand
 
 
 st.set_page_config(
@@ -25,6 +25,7 @@ def _init_state() -> None:
         "selected_customer": None,
         "selected_order": None,
         "nav_page": "Dashboard",
+        "view_mode": "Desktop",
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -73,6 +74,12 @@ def _render_sidebar() -> str:
         )
         chosen_label = chosen.split(" ", 1)[1] if " " in chosen else chosen
         st.session_state["nav_page"] = chosen_label
+        st.selectbox(
+            "View Mode",
+            options=["Desktop", "Mobile Preview"],
+            key="view_mode",
+            help="Desktop keeps the current layout unchanged. Mobile Preview stacks content into a phone-style layout.",
+        )
         st.markdown("<div style='margin-top:16px;color:#64748B;font-size:11px'>Enterprise operations navigation</div>", unsafe_allow_html=True)
     return st.session_state.get("nav_page", "Dashboard")
 
@@ -87,6 +94,7 @@ def _resolve_module_path(nav_page: str) -> str:
 def main() -> None:
     _init_state()
     apply_global_styles()
+    apply_view_mode_styles()
     render_enterprise_header()
     selected = _render_sidebar()
 

@@ -187,10 +187,13 @@ def create_metric_card(
     delta_text = "No change" if delta is None else str(delta)
     spark = _sparkline_svg(trend_data, color=border_color)
 
+    metric_icon = _display_icon(icon)
+
     html = f"""
     <div class='metric-card fade-in' style='border-left-color:{border_color};'>
       <div class='metric-top'>
         <div class='metric-title'>{title}</div>
+                <span class='metric-icon' aria-hidden='true'>{metric_icon}</span>
       </div>
       <div class='metric-value'>{value}</div>
       <div class='metric-row'>
@@ -398,3 +401,78 @@ def apply_global_styles() -> None:
     if css_path.exists():
         css = css_path.read_text(encoding="utf-8")
         st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+
+def is_mobile_preview() -> bool:
+        return st.session_state.get("view_mode", "Desktop") == "Mobile Preview"
+
+
+def apply_view_mode_styles() -> None:
+        """Apply optional mobile preview overrides without impacting desktop defaults."""
+        if not is_mobile_preview():
+                return
+
+        st.markdown(
+                """
+                <style>
+                /* Constrain content to a phone-like viewport when preview is enabled. */
+                .block-container {
+                    max-width: 430px !important;
+                    padding-left: 0.75rem !important;
+                    padding-right: 0.75rem !important;
+                    padding-top: 7.6rem !important;
+                }
+
+                .enterprise-header {
+                    left: 0 !important;
+                    padding-left: 12px !important;
+                    padding-right: 12px !important;
+                    height: auto !important;
+                    min-height: 64px !important;
+                    align-items: flex-start !important;
+                    padding-top: 8px !important;
+                    padding-bottom: 8px !important;
+                }
+
+                .enterprise-header-inner,
+                .header-left {
+                    width: 100% !important;
+                }
+
+                .header-date,
+                .header-right,
+                .title-full {
+                    display: none !important;
+                }
+
+                .title-short {
+                    display: inline !important;
+                }
+
+                /* Force Streamlit columns to stack into one column in preview mode. */
+                div[data-testid="stHorizontalBlock"] {
+                    flex-direction: column !important;
+                    gap: 0.6rem !important;
+                }
+
+                div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    flex: 1 1 100% !important;
+                }
+
+                .metric-card {
+                    min-height: 132px !important;
+                }
+
+                .metric-value {
+                    font-size: 24px !important;
+                }
+
+                .section-title {
+                    font-size: 17px !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+        )
